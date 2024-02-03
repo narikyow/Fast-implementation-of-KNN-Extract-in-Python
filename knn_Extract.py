@@ -5,10 +5,6 @@ import pandas as pd
 from numba import jit
 
 @jit(nopython=True)
-def _distance(a, b):
-    return np.sum(np.abs(a-b), axis=1)
-
-@jit(nopython=True)
 def _get_feat(data, X_train, k_index):
     distances = np.sum(np.abs(X_train-data), axis=1)
     sorted_distances_index = np.argsort(distances)
@@ -44,6 +40,7 @@ def knnExtract(X, y, X_test, skf, k=3):# ターゲットエンコーディング
     CLASS_NUM = len(set(y))
     res_train = np.empty((X.shape[0], CLASS_NUM * k))
     res_test = np.empty((X_test.shape[0], CLASS_NUM * k))
+    res_test = np.inf
     col_names = []
     # まず、X_testのターゲットエンコーディングを全ての学習データを用いて行う。
     # X_testの目的変数は不明なため、X_trainのすべてのデータをエンコーディングに用いる。
@@ -80,8 +77,8 @@ def knnExtract(X, y, X_test, skf, k=3):# ターゲットエンコーディング
             print(features_train)
             print(features_test)
             res_train[valid_index] = features_train.T
-            res_test += features_test.T # CV毎に加算
-        res_test /= skf.get_n_splits()
+            res_test = np.minimum(res_test, features_test.T)
+        #res_test /= skf.get_n_splits()
     
     res_knn_train_df = pd.DataFrame(res_train, index=X.index, columns=col_names)
     res_knn_test_df = pd.DataFrame(res_test, index=X_test.index, columns=col_names)
